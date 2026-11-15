@@ -7,7 +7,7 @@ from flask import Flask, jsonify, render_template_string, request
 
 app = Flask(__name__)
 FORM = """<!doctype html><title>Workshop Notes</title>
-<h1>Workshop Notes</h1><form method="post" action="/notes">
+<h1>Workshop Notes</h1><form method="post" action="notes">
 <p><input name="title" placeholder="Title" required maxlength="100"></p>
 <p><textarea name="content" placeholder="Your note" required></textarea></p>
 <button type="submit">Save note</button></form>"""

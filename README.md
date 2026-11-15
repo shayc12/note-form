@@ -57,3 +57,5 @@ Verify original resources are gone and Terraform state is empty.
 
 See docs/workshop-prompts.md for the exact sequence. Actual test evidence is
 kept on the training host outside Git, with PASS / FAIL / NOT RUN statuses.
+
+Browser preview: open the forwarded 8080 URL from VS Code Ports. The form uses a relative action so Save works behind the preview path as well as directly on EC2.
