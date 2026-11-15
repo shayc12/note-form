@@ -21,6 +21,14 @@ variable "repo_url" {
     error_message = "Use a public https://github.com/OWNER/REPO.git URL without credentials."
   }
 }
+variable "availability_zone" {
+  type        = string
+  description = "Choose a verified us-east-1 AZ that offers t3.micro."
+  validation {
+    condition     = startswith(var.availability_zone, "us-east-1")
+    error_message = "Use an AZ in us-east-1 that offers t3.micro."
+  }
+}
 variable "lab_id" {
   type        = string
   description = "A unique short lowercase label for this participant's lab."
@@ -82,6 +90,7 @@ resource "aws_vpc" "lab" {
   tags                 = { Name = local.name }
 }
 resource "aws_subnet" "public" {
+  availability_zone       = var.availability_zone
   vpc_id                  = aws_vpc.lab.id
   cidr_block              = "10.20.1.0/24"
   map_public_ip_on_launch = true

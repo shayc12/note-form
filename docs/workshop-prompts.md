@@ -56,3 +56,6 @@ runs, all category checks pass, and the earlier S3 object remains unchanged.
 Finalize README and push source with no secrets/state/note data. Only at the end,
 review known objects and the 12-resource destroy plan, then delete our test
 resources. Preserve training host, existing StudentCeiling policy and repository.
+
+## Lab permission and availability checks
+Before initial apply, query t3.micro availability-zone offerings and set availability_zone explicitly. This lab denies GetBucketWebsite, so use the existing infra/bucket.sh through terraform_data for owned-bucket create/verify/delete rather than aws_s3_bucket advanced reads. Preserve the one bucket and restrict IAM exactly as above. The local HTML form must use a relative action so it works behind VS Code preview.

@@ -69,3 +69,5 @@ creates it only when absent, and refuses deletion while objects remain.
 No permissions were expanded. It does not automatically detect remote drift;
 explicit CLI ownership/existence and save/read-back checks are required.
 The total remains 12 managed Terraform resources and one actual S3 bucket.
+
+Availability zone: Codex must query EC2 instance-type offerings and choose a us-east-1 AZ that offers t3.micro before the first apply; do not let an unsupported zone be selected automatically.
