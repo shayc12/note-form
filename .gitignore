@@ -1,0 +1,10 @@
+.venv/
+notes/
+__pycache__/
+.env*
+*.pem
+*.key
+.terraform/
+*.tfstate*
+*.tfvars*
+*.tfplan
