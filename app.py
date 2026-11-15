@@ -10,7 +10,7 @@ FORM = """<!doctype html><title>Workshop Notes</title>
 <h1>Workshop Notes</h1><form method="post" action="notes">
 <p><input name="title" placeholder="Title" required maxlength="100"></p>
 <p><textarea name="content" placeholder="Your note" required></textarea></p>
-<button type="submit">Save note</button></form>"""
+<p><select name="category"><option value="general">General</option><option value="work">Work</option><option value="personal">Personal</option></select></p><button type="submit">Save note</button></form>"""
 
 
 def save_note(note):
@@ -48,8 +48,11 @@ def create_note():
         return {"error": "Title and content are required"}, 400
     if len(title) > 100 or len(content) > 5000:
         return {"error": "Note is too long"}, 400
+    category = request.form.get("category", "general")
+    if category not in {"general", "work", "personal"}:
+        return {"error": "Invalid category"}, 400
     try:
-        key = save_note({"title": title, "content": content})
+        key = save_note({"title": title, "content": content, "category": category})
     except Exception:
         app.logger.exception("Could not save note")
         return {"error": "Could not save note. Check server logs."}, 500
