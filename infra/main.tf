@@ -69,7 +69,10 @@ variable "allowed_cidrs" {
     error_message = "Use at least one restricted IPv4 source CIDR for the app."
   }
 }
-locals { name = "student-notes-${var.lab_id}" }
+locals {
+  name       = "student-notes-${var.lab_id}"
+  bucket_arn = "arn:aws:s3:::${var.bucket_name}"
+}
 # A clean class account has no default VPC. Terraform owns this dedicated
 # public network; no console setup, default VPC, NAT or paid endpoint is needed.
 resource "aws_vpc" "lab" {
@@ -100,7 +103,19 @@ resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
-resource "aws_s3_bucket" "notes" { bucket = var.bucket_name }
+resource "terraform_data" "notes" {
+  input            = { bucket_name = var.bucket_name, region = var.region }
+  triggers_replace = [var.bucket_name]
+  provisioner "local-exec" {
+    command     = "bash ./bucket.sh create"
+    environment = { BUCKET_NAME = self.input.bucket_name, BUCKET_REGION = self.input.region }
+  }
+  provisioner "local-exec" {
+    when        = destroy
+    command     = "bash ./bucket.sh delete"
+    environment = { BUCKET_NAME = self.input.bucket_name, BUCKET_REGION = self.input.region }
+  }
+}
 # New bucket private defaults; no bucket policy, lifecycle or ACL changes.
 resource "aws_iam_role" "app" {
   name                 = "${local.name}-role"
@@ -117,14 +132,15 @@ resource "aws_iam_role" "app" {
 # This is an IAM identity policy, NOT a disallowed S3 bucket policy.
 # The app only writes notes; the learner's CLI identity reads them back.
 resource "aws_iam_role_policy" "notes_write" {
-  name = "${local.name}-write"
-  role = aws_iam_role.app.id
+  name       = "${local.name}-write"
+  role       = aws_iam_role.app.id
+  depends_on = [terraform_data.notes]
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
       Action   = ["s3:PutObject"]
-      Resource = "${aws_s3_bucket.notes.arn}/notes/*"
+      Resource = "${local.bucket_arn}/notes/*"
     }]
   })
 }
@@ -171,12 +187,12 @@ resource "aws_instance" "app" {
   user_data_replace_on_change = false
   user_data = templatefile("${path.module}/bootstrap.sh.tftpl", {
     repo_url    = var.repo_url
-    bucket_name = aws_s3_bucket.notes.id
+    bucket_name = terraform_data.notes.output.bucket_name
     region      = var.region
   })
   depends_on = [aws_iam_role_policy.notes_write, aws_route_table_association.public]
   tags       = { Name = local.name }
 }
-output "bucket_name" { value = aws_s3_bucket.notes.id }
+output "bucket_name" { value = terraform_data.notes.output.bucket_name }
 output "instance_id" { value = aws_instance.app.id }
 output "app_url" { value = "http://${aws_instance.app.public_ip}:8080" }

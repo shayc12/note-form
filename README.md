@@ -59,3 +59,13 @@ See docs/workshop-prompts.md for the exact sequence. Actual test evidence is
 kept on the training host outside Git, with PASS / FAIL / NOT RUN statuses.
 
 Browser preview: open the forwarded 8080 URL from VS Code Ports. The form uses a relative action so Save works behind the preview path as well as directly on EC2.
+
+## Restricted S3 permissions in this lab
+The AWS provider requests GetBucketWebsite even for a plain bucket, and this
+lab denies that read. The bucket therefore uses Terraform's built-in
+terraform_data lifecycle plus infra/bucket.sh and the allowed AWS CLI calls.
+The helper verifies account ownership, reuses the exact existing bucket,
+creates it only when absent, and refuses deletion while objects remain.
+No permissions were expanded. It does not automatically detect remote drift;
+explicit CLI ownership/existence and save/read-back checks are required.
+The total remains 12 managed Terraform resources and one actual S3 bucket.
