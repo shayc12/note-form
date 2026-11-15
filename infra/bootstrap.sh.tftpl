@@ -1,0 +1,38 @@
+#!/bin/bash
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y git python3 python3-venv python3-pip curl
+id notesapp >/dev/null 2>&1 || useradd --system --create-home --home-dir /home/notesapp notesapp
+# A public GitHub repository: no GitHub credentials on the EC2 instance.
+GIT_TERMINAL_PROMPT=0 git -c credential.helper= clone --branch main --single-branch '${repo_url}' /opt/notes-app
+chown -R notesapp:notesapp /opt/notes-app
+sudo -u notesapp python3 -m venv /opt/notes-app/.venv
+sudo -u notesapp /opt/notes-app/.venv/bin/pip install -r /opt/notes-app/requirements.txt
+cat > /etc/systemd/system/notes-app.service <<'UNIT'
+[Unit]
+Description=Notes app from public GitHub
+Wants=network-online.target
+After=network-online.target
+[Service]
+User=notesapp
+WorkingDirectory=/opt/notes-app
+Environment=S3_BUCKET=${bucket_name}
+Environment=AWS_DEFAULT_REGION=${region}
+ExecStart=/opt/notes-app/.venv/bin/gunicorn --workers 1 --bind 0.0.0.0:8080 app:app
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now notes-app
+sudo -u notesapp git -C /opt/notes-app rev-parse HEAD > /var/log/notes-app-commit
+for attempt in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:8080/health; then
+    echo "App started; verify GitHub commit and live S3 storage through Codex."
+    exit 0
+  fi
+  sleep 2
+done
+journalctl -u notes-app --no-pager -n 40
+exit 1
